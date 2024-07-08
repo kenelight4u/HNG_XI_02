@@ -20,8 +20,9 @@ namespace Tests
             _connection.Open();
             TenantId = Guid.NewGuid();
 
-            var options = new DbContextOptionsBuilder<UserAuthNOrgDbContext>().UseNpgsql(_connection).Options;
-            
+            var options = new DbContextOptionsBuilder<UserAuthNOrgDbContext>().UseSqlite(_connection).Options;
+            Database = new UserAuthNOrgDbContext(options);
+
             Database.Database.EnsureCreated();
             TestContext = new TestContext()
             {
