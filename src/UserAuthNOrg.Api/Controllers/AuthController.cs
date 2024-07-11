@@ -19,8 +19,9 @@ using UserAuthNOrg.Utilities.Extensions;
 
 namespace UserAuthNOrg.Api.Controllers
 {
-    [ApiVersion("1.0")]
-    public class AuthController : BaseController
+    [Route("[controller]")]
+    [ApiController]
+    public class AuthController : ControllerBase
     {
         private readonly UserManager<User> _userManager;
         private readonly SignInManager<User> _signInManager;
@@ -128,6 +129,10 @@ namespace UserAuthNOrg.Api.Controllers
 
                     return StatusCode(201, response);
                 }
+
+                return BadRequest(new ApiResponse<string>(
+                        "User creation not successful!",
+                        Utilities.Enums.StatusCode.BadRequest));
             }
 
             var result = new ApiResponse<List<Error>>(errors);

@@ -1,9 +1,11 @@
-﻿using FluentAssertions;
+﻿using Azure;
+using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Moq;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -14,6 +16,7 @@ using UserAuthNOrg.Api.Controllers;
 using UserAuthNOrg.Core.Models;
 using UserAuthNOrg.Core.ViewModel;
 using UserAuthNOrg.Infrastructure.Interfaces;
+using UserAuthNOrg.Utilities.Enums;
 using UserAuthNOrg.Utilities.Extensions;
 
 namespace Tests
@@ -56,25 +59,137 @@ namespace Tests
                 new DefaultHttpContext { User = TestData.GetAuthenticatedUser() };
         }
 
-        [Fact]
-        public async Task SignUp_Validation_Failure()
+        [Theory, AutoNSubstituteData]
+        public async Task SignUp_Validation_Failure_Should_Return_StatusCode_422(SignUpDTO model)
         {
             // Arrange
-            var model = new SignUpDTO()
-            { 
-                Email = "dev@sbsc.com"
-            };
+            model.FirstName = null;
+            model.LastName = null;
+            model.Password = null;
+            model.Email = "dev@sbsc.com";
 
             var resultModel = new ApiResponse<List<Error>>(BuildError());
 
             // Act
-            var result = await _sut.SignUp(model) as OkObjectResult;
+            var result = await _sut.SignUp(model);
 
             // Assert
-            result.StatusCode.Should().Be(422);
-            result.Value.Should().NotBeNull();
-            result.Value.Should().BeEquivalentTo(resultModel, x => x.ComparingRecordsByValue().ComparingByMembers<ApiResponse<List<Error>>>());
-            result.Value.Should().BeSameAs(resultModel);
+            result.Should().BeOfType<ObjectResult>();
+            var objectResult = (ObjectResult)result;
+
+            objectResult.StatusCode.Should().Be(422);
+            objectResult.Value.Should().NotBeNull();
+            objectResult.Value.Should().BeEquivalentTo(resultModel, x => x.ComparingRecordsByValue().ComparingByMembers<ApiResponse<List<Error>>>());
+
+            var objResultValue = (ApiResponse<List<Error>>)objectResult.Value;
+            objResultValue?.Errors.Count().Should().Be(3);
+        }
+
+        [Theory, AutoNSubstituteData]
+        public async Task SignUp_UserExist_Should_Return_BadRequest(SignUpDTO model)
+        {
+            // Arrange
+            model.Email = "dev@yopmail.com";
+
+            var user = TestData.GetUsers().FirstOrDefault();
+
+            var resultModel = new ApiResponse<string>(
+                        "Email belongs to an existing customer",
+                        StatusCode.BadRequest);
+
+            UserManager.Setup(x => x.FindByEmailAsync(It.IsAny<string>()))
+               .Returns(Task.FromResult(user));
+
+            // Act
+            var result = await _sut.SignUp(model);
+
+            // Assert
+            UserManager.Verify(x => x.FindByEmailAsync(It.IsAny<string>()), Times.Once);
+            result.Should().BeOfType<BadRequestObjectResult>();
+            var objectResult = (BadRequestObjectResult)result;
+
+            objectResult.StatusCode.Should().Be(400);
+            objectResult.Value.Should().NotBeNull();
+            objectResult.Value.Should().BeEquivalentTo(resultModel, x => x.ComparingRecordsByValue().ComparingByMembers<ApiResponse<string>>());
+
+            var objResultValue = (ApiResponse<string>)objectResult.Value;
+            objResultValue?.Errors.Should().BeNull();
+            objResultValue?.Message.Should().BeSameAs(resultModel.Message);
+            objResultValue?.StatusCode.ToString().Should().BeSameAs(resultModel.StatusCode.ToString());
+        }
+
+        [Theory, AutoNSubstituteData]
+        public async Task SignUp_CreatAsyncFailed_Should_Return_BadRequest(SignUpDTO model)
+        {
+            // Arrange
+            model.Email = "dev2@yopmail.com";
+
+            var resultModel = new ApiResponse<string>(
+                        "User creation not successful!",
+                        StatusCode.BadRequest);
+
+            UserManager.Setup(x => x.CreateAsync(It.IsAny<User>(), It.IsAny<string>()))
+                .ReturnsAsync(IdentityResult.Failed());
+
+            // Act
+            var result = await _sut.SignUp(model);
+
+            // Assert
+            result.Should().BeOfType<BadRequestObjectResult>();
+            var objectResult = (BadRequestObjectResult)result;
+
+            objectResult.StatusCode.Should().Be(400);
+            objectResult.Value.Should().NotBeNull();
+            objectResult.Value.Should().BeEquivalentTo(resultModel, x => x.ComparingRecordsByValue().ComparingByMembers<ApiResponse<string>>());
+
+            var objResultValue = (ApiResponse<string>)objectResult.Value;
+            objResultValue?.Errors.Should().BeNull();
+            objResultValue?.Message.Should().BeSameAs(resultModel.Message);
+            objResultValue?.StatusCode.ToString().Should().BeSameAs(resultModel.StatusCode.ToString());
+        }
+
+        [Theory, AutoNSubstituteData]
+        public async Task SignUp_CreatAsyncPassed_Should_Return_Ok_TokenNotNull(SignUpDTO model)
+        {
+            // Arrange
+            model.Email = "success@yopmail.com";
+
+            var resultModel = new ApiResponse<SuccessfulUserCreation>(
+                        new SuccessfulUserCreation()
+                        {
+                            User = new ViewUser()
+                            {
+                                Email = model.Email,
+                                FirstName = model.FirstName,
+                                LastName = model.LastName,
+                                Phone = model.Phone
+                            }
+                        },
+                        "Registration successful",
+                        StatusCode.Created);
+
+            UserManager.Setup(x => x.CreateAsync(It.IsAny<User>(), It.IsAny<string>()))
+                .ReturnsAsync(IdentityResult.Success);
+            RoleManager.Setup(x => x.RoleExistsAsync(It.IsAny<string>()))
+                .Returns(Task.FromResult(true));
+            UserManager.Setup(x => x.AddToRoleAsync(It.IsAny<User>(), It.IsAny<string>()))
+              .ReturnsAsync(IdentityResult.Success);
+
+            // Act
+            var result = await _sut.SignUp(model);
+
+            // Assert
+            result.Should().BeOfType<OkObjectResult>();
+            var objectResult = (OkObjectResult)result;
+
+            objectResult.StatusCode.Should().Be(201);
+            objectResult.Value.Should().NotBeNull();
+            objectResult.Value.Should().BeEquivalentTo(resultModel, x => x.ComparingRecordsByValue().ComparingByMembers<ApiResponse<SuccessfulUserCreation>>());
+
+            var objResultValue = (ApiResponse<SuccessfulUserCreation>)objectResult.Value;
+            objResultValue?.Errors.Should().BeNull();
+            objResultValue?.Message.Should().BeSameAs(resultModel.Message);
+            objResultValue?.StatusCode.ToString().Should().BeSameAs(resultModel.StatusCode.ToString());
         }
 
         private static List<Error> BuildError()

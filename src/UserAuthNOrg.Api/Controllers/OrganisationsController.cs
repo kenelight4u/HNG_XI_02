@@ -73,6 +73,9 @@ namespace UserAuthNOrg.Api.Controllers
             {
                 var result = await _orgService.UpdateUsersOrganizations(orgId, model);
 
+                if (result.StatusCode == Utilities.Enums.StatusCode.NotFound)
+                    return StatusCode(404, result);
+
                 if (result.StatusCode == Utilities.Enums.StatusCode.BadRequest)
                     return BadRequest(result);
 
