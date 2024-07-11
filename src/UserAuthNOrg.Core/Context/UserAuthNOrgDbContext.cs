@@ -9,7 +9,8 @@ namespace UserAuthNOrg.Core.Context
     {
         public UserAuthNOrgDbContext(DbContextOptions<UserAuthNOrgDbContext> options) : base(options)
         {
-            this.Database.Migrate();
+            //comment out if you want to run migration on app start up
+            //this.Database.Migrate();
         }
 
         public DbSet<User> AuthOrgUsers { get; set; }

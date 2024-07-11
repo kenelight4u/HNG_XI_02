@@ -142,9 +142,16 @@ namespace UserAuthNOrg.Infrastructure.Services
         {
             try
             {
-                var org = await _context.UserOrganization.Where(o => o.Id == model.Userid && o.OrgId == orgId).FirstOrDefaultAsync();
+                var organization = await _context.Organizations
+                    .Include(o => o.UsersOrganizations).Where(s => s.OrgId == orgId)
+                    .FirstOrDefaultAsync();
 
-                if (org is not null)
+                if (organization == null)
+                    return new ApiResponse<string>(ConstantsString.NotFound, Utilities.Enums.StatusCode.NotFound);
+
+                var userInOrganization = organization.UsersOrganizations.Where(u => u.Id == model.Userid);
+
+                if (userInOrganization is not null)
                     return new ApiResponse<string>(ConstantsString.UserExist, Utilities.Enums.StatusCode.BadRequest);
 
                 var userOrg = new UserOrganization()

@@ -18,12 +18,12 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="6.0.1" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="7.0.0" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="6.0.1" />
     <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="7.6.2" />
 	<PackageReference Include="Microsoft.IdentityModel.Protocols.OpenIdConnect" Version="7.0.1" />
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.20.1" />
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="6.0.29" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="7.0.18" />
     <PackageReference Include="Serilog.Sinks.PostgreSQL" Version="2.3.0" />
     <PackageReference Include="Serilog.Sinks.PostgreSQL.Configuration" Version="1.0.1" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
@@ -40,6 +40,10 @@
     <ProjectReference Include="..\UserAuthNOrg.Core\UserAuthNOrg.Core.csproj" />
     <ProjectReference Include="..\UserAuthNOrg.Infrastructure\UserAuthNOrg.Infrastructure.csproj" />
     <ProjectReference Include="..\UserAuthNOrg.Utilities\UserAuthNOrg.Utilities.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Logs\" />
   </ItemGroup>
 
 </Project>

@@ -8,11 +8,11 @@ using UserAuthNOrg.Utilities.Extensions;
 namespace UserAuthNOrg.Api.Controllers
 {
     [ApiVersion("1.0")]
-    public class OrganizationsController : BaseController
+    public class OrganisationsController : BaseController
     {
         private readonly IOrganizationServices _orgService;
 
-        public OrganizationsController(IOrganizationServices orgService)
+        public OrganisationsController(IOrganizationServices orgService)
         {
             _orgService = orgService;
         }
@@ -72,6 +72,9 @@ namespace UserAuthNOrg.Api.Controllers
             if (status)
             {
                 var result = await _orgService.UpdateUsersOrganizations(orgId, model);
+
+                if (result.StatusCode == Utilities.Enums.StatusCode.NotFound)
+                    return StatusCode(404, result);
 
                 if (result.StatusCode == Utilities.Enums.StatusCode.BadRequest)
                     return BadRequest(result);
